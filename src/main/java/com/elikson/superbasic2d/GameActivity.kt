@@ -6,11 +6,17 @@ import android.content.pm.ActivityInfo
 import android.graphics.Rect
 import android.opengl.GLSurfaceView
 import android.os.Bundle
+import android.view.MotionEvent
 import com.twicecircled.spritebatcher.Drawer
 import com.twicecircled.spritebatcher.SpriteBatcher
 import javax.microedition.khronos.opengles.GL10
 
-class GameActivity() : Activity(), Drawer {
+open class GameActivity() : Activity(), Drawer {
+
+    val objectGames: MutableList<ObjectGame> = mutableListOf()
+    private var viewWidth: Int = 0
+    private var viewHeight: Int = 0
+    var touched = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,32 +28,59 @@ class GameActivity() : Activity(), Drawer {
     @SuppressLint("SourceLockedOrientationActivity")
     fun getSurfaceView(): GLSurfaceView {
         val surfaceView = GLSurfaceView(this)
+
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        var lenghtArraysIds = 0
+        for (objectGame in objectGames) {
+            if (objectGame.sourcesIds != null) {
+                lenghtArraysIds += objectGame.sourcesIds.size
+            }
+        }
+        val resourceIds = IntArray(objectGames.size + lenghtArraysIds)
+
+        var indexId = 0
+        for (objectGame in objectGames) {
+            resourceIds[indexId] = objectGame.sourceId
+            indexId++
+            val auxIds = objectGame.sourcesIds
+            if (auxIds != null) {
+                for (id in auxIds) {
+                    resourceIds[indexId] = id
+                    indexId++
+                }
+            }
+        }
+
+        surfaceView.setRenderer(SpriteBatcher(this, resourceIds, this))
         return surfaceView
     }
 
-    fun drawing() {
-
+    fun getObject(tag: String): ObjectGame? {
+        return objectGames.find { predicate: ObjectGame -> predicate.tag.equals(tag) }
     }
 
-    fun draw(sb: SpriteBatcher, objectGames: List<ObjectGame>) {
+    fun getObject(position: Int): ObjectGame? {
+        return objectGames[position]
+    }
+
+    fun draw(sb: SpriteBatcher) {
         //Desenhando o que foi declarado
         for (objectGame in objectGames) {
-            if (objectGame.getTag().contains("text")) {
+            if (objectGame.tag.contains("text")) {
                 sb.drawText(
-                    objectGame.getSource_id(),
-                    objectGame.getText(),
-                    objectGame.getX(),
-                    objectGame.getY(),
-                    objectGame.getScale()
+                    objectGame.sourceId,
+                    objectGame.text,
+                    objectGame.x,
+                    objectGame.y,
+                    objectGame.scale
                 )
             } else {
                 sb.draw(
-                    objectGame.getSource_id(),
-                    Rect(0, 0, objectGame.getOriginal_width(), objectGame.getOriginal_height()),
-                    objectGame.getX(),
-                    objectGame.getY(),
-                    Rect(0, 0, objectGame.getWidth(), objectGame.getHeight()),
+                    objectGame.sourceId,
+                    Rect(0, 0, objectGame.originalWidth, objectGame.originalHeight),
+                    objectGame.x,
+                    objectGame.y,
+                    Rect(0, 0, objectGame.width, objectGame.height),
                     0,
                     1.0f
                 )
@@ -56,31 +89,62 @@ class GameActivity() : Activity(), Drawer {
         //
     }
 
+    open fun drawing(){
+    }
 
-    override fun onDrawFrame(gl10: GL10, spriteBatcher: SpriteBatcher?) {
-        //Tamanho da tala
+    open fun touching(x: Float, y: Float) {
 
+    }
+
+    open fun isTouch(posx: Float, posy: Float, pos: Int): Boolean {
+        val objectGame = objectGames[pos]
+        return (posx >= objectGame.x && posx <= objectGame.x + objectGame.width
+                && posy >= objectGame.y + objectGame.height / 3 && posy <= objectGame.y + objectGame.height + objectGame.height / 2)
+    }
+
+    open fun isTouch(posx: Float, posy: Float, tag: String): Boolean {
+        val objectGame = objectGames.find { predicate: ObjectGame -> predicate.tag.equals(tag) }!!
+        return (posx >= objectGame.x && posx <= objectGame.x + objectGame.width
+                && posy >= objectGame.y + objectGame.height / 3 && posy <= objectGame.y + objectGame.height + objectGame.height / 2)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        event.setLocation(
+            event.x * Configs.Screen.SCREEN_WIDTH / viewWidth,
+            event.y * Configs.Screen.SCREEN_HEIGHT / viewHeight
+        )
+
+        if(event.getAction() == MotionEvent.ACTION_DOWN){
+            touched = true;
+        }
+
+        if(event.getAction() == MotionEvent.ACTION_UP){
+            touched = false;
+        }
+
+        val auxX = event.x
+        val auxY = event.y
+
+        touching(auxX, auxY)
+        return true
+    }
+
+    override fun onDrawFrame(gl10: GL10, spriteBatcher: SpriteBatcher) {
         //Tamanho da tala
-        val viewWidth = spriteBatcher?.viewWidth
-        val viewHeight = spriteBatcher?.viewHeight
+        viewWidth = spriteBatcher.viewWidth
+        viewHeight = spriteBatcher.viewHeight
 
         //Calcula a escala X referente a largura da tela de exibição do jogo
-
-        //Calcula a escala X referente a largura da tela de exibição do jogo
-        val scaleX: Float = (viewWidth?.toFloat() ?: 1000f) * 1.0f / Configs.Screen.SCREEN_WIDTH.toFloat()
+        val scaleX: Float = viewWidth * 1.0f / Configs.Screen.SCREEN_WIDTH.toFloat()
 
         //Calcula a escala Y referente a altura da tela de exibição do jogo
-
-        //Calcula a escala Y referente a altura da tela de exibição do jogo
-        val scaleY: Float = (viewHeight?.toFloat() ?: 1000f) * 1.0f / Configs.Screen.SCREEN_HEIGHT.toFloat()
-
-        //Redimensiona a tela de exibição de acordo com o tamanho da tela do dispositivo
-        //baseado no cálculo das escalas X e Y
+        val scaleY: Float = viewHeight * 1.0f / Configs.Screen.SCREEN_HEIGHT.toFloat()
 
         //Redimensiona a tela de exibição de acordo com o tamanho da tela do dispositivo
         //baseado no cálculo das escalas X e Y
         gl10.glScalef(scaleX, scaleY, 1.0f)
 
+        draw(spriteBatcher)
 
         drawing()
     }

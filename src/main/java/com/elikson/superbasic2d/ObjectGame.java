@@ -1,30 +1,43 @@
 package com.elikson.superbasic2d;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
 /**
- * Created by Elikson Bastos on 05/05/2017.
+ * Created by Elikson Bastos on 10/11/2018.
  */
 
 public class ObjectGame {
     private int width;
     private int height;
-    private int source_id;
-    private int original_width;
-    private int original_height;
+
+    private int sourceId;
+    private int originalWidth;
+    private int originalHeight;
+
+    private int sourcesIds[];
+
     private int x;
     private int y;
     private int yOrigem;
     private int yOldOrigem;
+    private int delayY = 0;
+    private int delayX = 0;
+
+    private int oldWidth;
+    private int oldHeight;
+    private float oldScale;
+    private boolean visibility = true;
+
+    private int durationAnim = -1;
+    private int delayAnim = -1;
+    private boolean executeAnim = true;
+    private int indexAnim = 0;
 
     private float scale;
 
     private String tag;
     private String text;
-
-    private Context context;
 
     private boolean moveToUp = false;
     private boolean moveToDown = false;
@@ -32,31 +45,126 @@ public class ObjectGame {
     private boolean moveToLeft = false;
     private boolean move = false;
 
-    public ObjectGame(Context context, int source_id, int x, int y, int width, int height, String tag){
+    private Context context;
+
+    public ObjectGame(Context context, int sourceId, int x, int y, int width, int height, String tag){
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.source_id = source_id;
-        this.context = context;
+        this.oldWidth = width;
+        this.oldHeight = height;
+        this.sourceId = sourceId;
         this.tag = tag;
 
         BitmapFactory.Options dimension = new BitmapFactory.Options();
         dimension.inJustDecodeBounds = true;
-        Bitmap mBitmap = BitmapFactory.decodeResource(context.getResources(), source_id, dimension);
-        original_width = dimension.outWidth;
-        original_height =  dimension.outHeight;
+        BitmapFactory.decodeResource(context.getResources(), sourceId, dimension);
+        originalWidth = dimension.outWidth;
+        originalHeight =  dimension.outHeight;
+
+        this.context = context;
     }
 
-    public ObjectGame(Context context, int source_id, int x, int y, float scale, String text, String tag){
+    public ObjectGame(Context context, int sourcesIds[], int x, int y, int width, int height, String tag){
         this.x = x;
         this.y = y;
-        this.source_id = source_id;
+        this.width = width;
+        this.height = height;
+        this.oldWidth = width;
+        this.oldHeight = height;
+        this.sourcesIds = sourcesIds;
+        this.sourceId = sourcesIds[0];
+        this.tag = tag;
+
+        BitmapFactory.Options dimension = new BitmapFactory.Options();
+        dimension.inJustDecodeBounds = true;
+
+        BitmapFactory.decodeResource(context.getResources(), sourceId, dimension);
+        originalWidth = dimension.outWidth;
+        originalHeight =  dimension.outHeight;
+
         this.context = context;
+    }
+
+    public ObjectGame(Context context, int sourceId, int x, int y, int width, int height, String tag, boolean visibility){
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.oldWidth = width;
+        this.oldHeight = height;
+        this.sourceId = sourceId;
+        this.tag = tag;
+
+        if(!visibility){
+            setVisibility(false);
+        }
+
+        BitmapFactory.Options dimension = new BitmapFactory.Options();
+        dimension.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(context.getResources(), sourceId, dimension);
+        originalWidth = dimension.outWidth;
+        originalHeight =  dimension.outHeight;
+
+        this.context = context;
+    }
+
+    public ObjectGame(Context context, int sourcesIds[], int x, int y, int width, int height, String tag, boolean visibility){
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.oldWidth = width;
+        this.oldHeight = height;
+        this.sourcesIds = sourcesIds;
+        this.sourceId = sourcesIds[0];
+        this.tag = tag;
+
+        if(!visibility){
+            setVisibility(false);
+        }
+
+        BitmapFactory.Options dimension = new BitmapFactory.Options();
+        dimension.inJustDecodeBounds = true;
+
+        BitmapFactory.decodeResource(context.getResources(), sourceId, dimension);
+        originalWidth = dimension.outWidth;
+        originalHeight =  dimension.outHeight;
+
+        this.context = context;
+    }
+
+    public ObjectGame(int sourceId, int x, int y, float scale, String text, String tag, boolean visibility){
+        this.x = x;
+        this.y = y;
+        this.sourceId = sourceId;
         this.tag = tag;
         this.text = text;
         this.scale = scale;
+        this.oldScale = scale;
+        this.oldWidth = width;
+        this.oldHeight = height;
+
+        if(!visibility){
+            setVisibilityText(false);
+        }
     }
+
+    public ObjectGame(int sourceId, int x, int y, float scale, String text, String tag){
+        this.x = x;
+        this.y = y;
+        this.sourceId = sourceId;
+        this.tag = tag;
+        this.text = text;
+        this.scale = scale;
+        this.oldScale = scale;
+        this.oldWidth = width;
+        this.oldHeight = height;
+    }
+
+    public ObjectGame(){}
+
 
     public float getScale() {
         return scale;
@@ -64,6 +172,7 @@ public class ObjectGame {
 
     public void setScale(float scale) {
         this.scale = scale;
+        this.oldScale = scale;
     }
 
     public String getText() {
@@ -158,8 +267,24 @@ public class ObjectGame {
         this.x += x;
     }
 
+    public void moveByX(int x, int delayX){
+        if(this.delayX <= 0){
+            this.delayX = delayX;
+            this.x += x;
+        }
+        this.delayX--;
+    }
+
     public void moveByY(int y){
         this.y += y;
+    }
+
+    public void moveByY(int y, int delayY){
+        if(this.delayY <= 0){
+            this.delayY = delayY;
+            this.y += y;
+        }
+        this.delayY--;
     }
 
     public int getWidth() {
@@ -168,37 +293,139 @@ public class ObjectGame {
 
     public void setWidth(int width) {
         this.width = width;
+        this.oldWidth = width;
     }
 
     public int getHeight() {
         return height;
     }
 
-    public int getSource_id() {
-        return source_id;
+    public int getSourceId() {
+        return sourceId;
     }
 
-    public void setSource_id(int source_id) {
-        this.source_id = source_id;
+    public void setSourceId(int sourceId) {
+        this.sourceId = sourceId;
     }
 
-    public int getOriginal_width() {
-        return original_width;
+    public int getOriginalWidth() {
+        return originalWidth;
     }
 
-    public void setOriginal_width(int original_width) {
-        this.original_width = original_width;
-    }
-
-    public int getOriginal_height() {
-        return original_height;
-    }
-
-    public void setOriginal_height(int original_height) {
-        this.original_height = original_height;
+    public int getOriginalHeight() {
+        return originalHeight;
     }
 
     public void setHeight(int height) {
         this.height = height;
+        this.oldHeight = height;
+    }
+
+    public int[] getSourcesIds() {
+        return sourcesIds;
+    }
+
+    public void setSourcesIds(int[] sources) {
+        sourcesIds = sources;
+    }
+
+    public boolean isVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(boolean option){
+        if(option){
+            width = oldWidth;
+            height = oldHeight;
+            visibility = true;
+        }else{
+            width = 0;
+            height = 0;
+            visibility = false;
+        }
+    }
+
+    public void setVisibilityText(boolean option){
+        if(option){
+            scale = oldScale;
+            visibility = true;
+        }else{
+            scale = 0;
+            visibility = false;
+        }
+    }
+
+    public void reDoOriginalsValues(){
+        BitmapFactory.Options dimension = new BitmapFactory.Options();
+        dimension.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(context.getResources(), sourceId, dimension);
+        originalWidth = dimension.outWidth;
+        originalHeight =  dimension.outHeight;
+    }
+
+    public boolean anim(int duration, int delay, boolean repeat){
+        if(executeAnim){
+            if(durationAnim == -1){
+                durationAnim = duration;
+            }
+            if(delayAnim == -1){
+                delayAnim = delay;
+            }
+
+            if(durationAnim > 0){
+                if(delayAnim == 0){
+                    sourceId = sourcesIds[indexAnim];
+                    if(indexAnim != sourcesIds.length-1){
+                        indexAnim++;
+                    }else{
+                        indexAnim = 0;
+                    }
+                }
+
+                delayAnim--;
+                durationAnim--;
+            }else{
+                executeAnim = repeat;
+                durationAnim = duration;
+                if(!repeat){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void resetAnim(){
+        durationAnim = -1;
+        delayAnim = -1;
+        executeAnim = true;
+        indexAnim = 0;
+        if(sourcesIds != null){
+            sourceId = sourcesIds[0];
+        }
+    }
+
+    public void turnRight(){
+        if(originalWidth < 0){
+            originalWidth = originalWidth * -1;
+        }
+    }
+
+    public void turnLeft(){
+        if(originalWidth > 0){
+            originalWidth = -originalWidth;
+        }
+    }
+
+    public boolean getDirectionSide(){
+        return originalWidth > 0;
+    }
+
+    public void turnUp(){
+        originalHeight = originalHeight < 0 ? +originalHeight : originalHeight;
+    }
+
+    public void turnDown(){
+        originalHeight = originalHeight > 0 ? -originalHeight : originalHeight;
     }
 }
